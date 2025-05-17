@@ -1,15 +1,31 @@
-import { Model, DataTypes } from 'sequelize';
+import { Model, DataTypes, Association } from 'sequelize';
 import { sequelize } from '../config/database';
+import { CartItems } from './CartItems';
+import { Order } from './Order';
 
 export class User extends Model{
     declare id: number;
-    declare nome: string;
+    declare name: string;
     declare email: string;
-    declare senha: string;
+    declare password: string;
     declare role: 'admin' | 'cliente';
 
-    public readonly createAt!: Date;
-    public readonly updateAt!: Date;
+    public static associations: {
+        order: Association<User, Order>;
+        cartItems: Association<User, CartItems>;
+    };
+
+    static associate(models: any){
+        User.hasMany(models.Order, {
+            foreignKey: 'userId',
+            as: 'order'
+        });
+
+        User.hasMany(models.CartItems, {
+            foreignKey: 'userId',
+            as: 'cartItems'
+        });        
+    };
 };
 
 User.init(
@@ -20,7 +36,7 @@ User.init(
             primaryKey: true,
             autoIncrement: true,
           },
-          nome: {
+          name: {
             type: DataTypes.STRING,
             allowNull: false,
           },
@@ -28,13 +44,17 @@ User.init(
             type: DataTypes.STRING,
             allowNull: false,
           },
-          senha: {
+          password: {
             type: DataTypes.STRING,
             allowNull: false,
           },
           role: {
             type: DataTypes.ENUM('admin', 'cliente'),
             allowNull: true,
+            defaultValue: 'cliente',
+            validate: {
+              isIn: [[ 'admin', 'cliente' ]]
+            }
           },
     },
     {

@@ -1,15 +1,15 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { User } from '../models/User';
+import models from '../models/index'
 import dotenv from 'dotenv';
 
 dotenv.config();
-
+const { User } = models;
 export class UserController{
 
-    register = async (req: Request, res: Response): Promise<Response> => {
-        const { nome, email, senha } = req.body;
+    registerUser = async (req: Request, res: Response): Promise<Response> => {
+        const { name, email, password} = req.body;
 
         try{
             const existingUser = await User.findOne({ where: {email} });
@@ -19,16 +19,16 @@ export class UserController{
                 return res.status(400).json({ message: 'Email inválido! seu email deve conter @'})   
             };
 
-            if(senha.length < 8){
+            if(password.length < 8){
                 return res.status(400).json({ message: 'Senha deve conter no mínimo 8 caractéres!'});
             };
 
-            const hashPassword = await bcrypt.hash(senha, 10);
+            const hashPassword = await bcrypt.hash(password, 10);
 
-            const user = await User.create({ nome, email, senha: hashPassword });
+            const user = await User.create({ name, email, password: hashPassword });
 
             return res.status(201).json({ message: 'Usuário cadastrado com sucesso!', 
-                user: {id: user.id, nome: user.nome, email: user.email} 
+                user: {id: user.id, name: user.name, email: user.email} 
             });
         }
         catch(err){
@@ -37,14 +37,53 @@ export class UserController{
         };
     };
 
+    registerAdmin = async (req: Request, res: Response): Promise<Response> => {
+        const { name, email, password, role } = req.body;
+
+        try{
+            const existingUser = await User.findOne({ where: {email} });
+            if(existingUser){ return res.status(400).json({ message: 'Email já cadastrado!'}) };
+
+            if(!email.includes('@')){
+                return res.status(400).json({ message: 'Email inválido! seu email deve conter @'})   
+            };
+
+            if(password.length < 8){
+                return res.status(400).json({ message: 'Senha deve conter no mínimo 8 caractéres!'});
+            };
+
+            const hashPassword = await bcrypt.hash(password, 10);
+
+            let finalRole = 'cliente';
+
+            const loggedUserId = (req as any).user?.userId;
+            if(loggedUserId){ 
+                const loggedUser = await User.findByPk(loggedUserId);
+                if(loggedUser && loggedUser.role === 'admin' && role){
+                    finalRole = role;
+                };
+            };
+
+            const user = await User.create({ name, email, password: hashPassword, role: finalRole });
+
+            return res.status(201).json({ message: 'Usuário cadastrado com sucesso!', 
+                user: {id: user.id, name: user.name, email: user.email, role: user.role} 
+            });
+        }
+        catch(err){
+            console.error('Falha ao cadastrar admin', err);
+            return res.status(500).json({ message: 'falha ao cadastrar admin!' });
+        };
+    };
+
     login = async (req: Request, res: Response): Promise<Response> => {
-        const { email, senha } = req.body;
+        const { email, password } = req.body;
 
         try{
             const user = await User.findOne({ where: {email} });
             if(!user){ return res.status(400).json({ message: 'Usuário não encontrado!' })};
 
-            const isMatch = await bcrypt.compare(senha, user.senha);
+            const isMatch = await bcrypt.compare(password, user.password);
             if(!isMatch){ return res.status(400).json({ message: 'Senha incorreta!' })};
 
             const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, {expiresIn: '1d' });
@@ -77,9 +116,9 @@ export class UserController{
 
     updateProfile = async (req: Request, res: Response): Promise<Response> => {
         const userId = (req as any).user.userId;
-        const {nome, email, senha} = req.body;
+        const {name, email, password} = req.body;
 
-        if(!nome && !email && !senha){
+        if(!name && !email && !password){
             return res.status(400).json({ message: 'Pelo menos um campo deve ser informado!' });
         };
 
@@ -90,8 +129,8 @@ export class UserController{
                 return res.status(404).json({ message: 'Usuário não encontrado!' });
             };
 
-            if(nome){
-                user.nome = nome;
+            if(name){
+                user.name = name;
             };
 
             if(email){
@@ -106,13 +145,13 @@ export class UserController{
                 user.email = email;
             }
 
-            if(senha){
-                if(senha.length < 8){
+            if(password){
+                if(password.length < 8){
                     return res.status(400).json({ message: 'Senha deve conter no mínimo 8 caractéres!'});
                 };
 
-                const hashPassword = await bcrypt.hash(senha, 10);
-                user.senha = hashPassword;
+                const hashPassword = await bcrypt.hash(password, 10);
+                user.password = hashPassword;
             }
 
             await user.save();
