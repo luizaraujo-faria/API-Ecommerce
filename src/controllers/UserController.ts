@@ -8,48 +8,58 @@ dotenv.config();
 const { User } = models;
 export class UserController{
 
-    registerUser = async (req: Request, res: Response): Promise<Response> => {
+    registerUser = async (req: Request, res: Response): Promise<void> => {
         const { name, email, password} = req.body;
 
         try{
             const existingUser = await User.findOne({ where: {email} });
-            if(existingUser){ return res.status(400).json({ message: 'Email já cadastrado!'}) };
+            if(existingUser){ 
+                res.status(400).json({ message: 'Email já cadastrado!'}) 
+                return;
+            };
 
             if(!email.includes('@')){
-                return res.status(400).json({ message: 'Email inválido! seu email deve conter @'})   
+                res.status(400).json({ message: 'Email inválido! seu email deve conter @'});
+                return;                   
             };
 
             if(password.length < 8){
-                return res.status(400).json({ message: 'Senha deve conter no mínimo 8 caractéres!'});
+                res.status(400).json({ message: 'Senha deve conter no mínimo 8 caractéres!'});
+                return;                
             };
 
             const hashPassword = await bcrypt.hash(password, 10);
 
             const user = await User.create({ name, email, password: hashPassword });
 
-            return res.status(201).json({ message: 'Usuário cadastrado com sucesso!', 
+            res.status(201).json({ message: 'Usuário cadastrado com sucesso!', 
                 user: {id: user.id, name: user.name, email: user.email} 
             });
         }
         catch(err){
             console.error('Falha ao cadastrar usuário!');
-            return res.status(500).json({ message: 'Falha ao cadastrar usuário!', error: err instanceof Error ? err.message : String(err) });
+            res.status(500).json({ message: 'Falha ao cadastrar usuário!', error: err instanceof Error ? err.message : String(err) });
         };
     };
 
-    registerAdmin = async (req: Request, res: Response): Promise<Response> => {
+    registerAdmin = async (req: Request, res: Response): Promise<void> => {
         const { name, email, password, role } = req.body;
 
         try{
             const existingUser = await User.findOne({ where: {email} });
-            if(existingUser){ return res.status(400).json({ message: 'Email já cadastrado!'}) };
+            if(existingUser){ 
+                res.status(400).json({ message: 'Email já cadastrado!'});
+                return;
+            };
 
             if(!email.includes('@')){
-                return res.status(400).json({ message: 'Email inválido! seu email deve conter @'})   
+                res.status(400).json({ message: 'Email inválido! seu email deve conter @'});
+                return; 
             };
 
             if(password.length < 8){
-                return res.status(400).json({ message: 'Senha deve conter no mínimo 8 caractéres!'});
+                res.status(400).json({ message: 'Senha deve conter no mínimo 8 caractéres!'});
+                return;
             };
 
             const hashPassword = await bcrypt.hash(password, 10);
@@ -66,67 +76,77 @@ export class UserController{
 
             const user = await User.create({ name, email, password: hashPassword, role: finalRole });
 
-            return res.status(201).json({ message: 'Usuário cadastrado com sucesso!', 
+            res.status(201).json({ message: 'Usuário cadastrado com sucesso!', 
                 user: {id: user.id, name: user.name, email: user.email, role: user.role} 
             });
         }
         catch(err){
             console.error('Falha ao cadastrar admin', err);
-            return res.status(500).json({ message: 'falha ao cadastrar admin!' });
+            res.status(500).json({ message: 'falha ao cadastrar admin!' });
         };
     };
 
-    login = async (req: Request, res: Response): Promise<Response> => {
+    login = async (req: Request, res: Response): Promise<void> => {
         const { email, password } = req.body;
 
         try{
             const user = await User.findOne({ where: {email} });
-            if(!user){ return res.status(400).json({ message: 'Usuário não encontrado!' })};
+            if(!user){ 
+                res.status(400).json({ message: 'Usuário não encontrado!' });
+                return;
+            };
 
             const isMatch = await bcrypt.compare(password, user.password);
-            if(!isMatch){ return res.status(400).json({ message: 'Senha incorreta!' })};
+
+            if(!isMatch){ 
+                res.status(400).json({ message: 'Senha incorreta!' });
+                return;
+            };
 
             const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, {expiresIn: '1d' });
 
-            return res.status(200).json({ message: 'Login realizado com sucesso!', token });
+            res.status(200).json({ message: 'Login realizado com sucesso!', token });
         }
         catch(err){
             console.error('Falha ao fazer login!');
-            return res.status(500).json({ message: 'Falha ao fazer login!', error: err instanceof Error ? err.message : String(err) });
+            res.status(500).json({ message: 'Falha ao fazer login!', error: err instanceof Error ? err.message : String(err) });
         };
     };
 
-    getProfile = async (req: Request, res: Response): Promise<Response> => {
+    getProfile = async (req: Request, res: Response): Promise<void> => {
         const userId = (req as any).user.userId;
 
         try{
             const user = await User.findByPk(userId, { attributes: { exclude: ['senha']} });
 
             if(!user){
-                return res.status(404).json({ message: 'Usuário não encontrado!' });
+                res.status(404).json({ message: 'Usuário não encontrado!' });
+                return
             };
 
-            return res.status(200).json({ message: 'Usuário carregado', user });
+            res.status(200).json({ message: 'Usuário carregado', user });
         }
         catch(err){
             console.error('Falha ao carregar perfil!', err);
-            return res.status(500).json({ message: 'Falha ao carregar perfil!' })
+            res.status(500).json({ message: 'Falha ao carregar perfil!' })
         };
     };
 
-    updateProfile = async (req: Request, res: Response): Promise<Response> => {
+    updateProfile = async (req: Request, res: Response): Promise<void> => {
         const userId = (req as any).user.userId;
         const {name, email, password} = req.body;
 
         if(!name && !email && !password){
-            return res.status(400).json({ message: 'Pelo menos um campo deve ser informado!' });
+            res.status(400).json({ message: 'Pelo menos um campo deve ser informado!' });
+            return;
         };
 
         try{
             const user = await User.findByPk(userId);
 
             if(!user){
-                return res.status(404).json({ message: 'Usuário não encontrado!' });
+                res.status(404).json({ message: 'Usuário não encontrado!' });
+                return;
             };
 
             if(name){
@@ -136,10 +156,14 @@ export class UserController{
             if(email){
 
                 const existingUser = await User.findOne({ where: {email} });
-                if(existingUser){ return res.status(400).json({ message: 'Email indisponível!'}) };
+                if(existingUser){ 
+                    res.status(400).json({ message: 'Email indisponível!'});
+                    return; 
+                };
 
                 if(!email.includes('@')){
-                    return res.status(400).json({ message: 'Email inválido! seu email deve conter @'})   
+                    res.status(400).json({ message: 'Email inválido! seu email deve conter @'});
+                    return;   
                 };
 
                 user.email = email;
@@ -147,7 +171,8 @@ export class UserController{
 
             if(password){
                 if(password.length < 8){
-                    return res.status(400).json({ message: 'Senha deve conter no mínimo 8 caractéres!'});
+                    res.status(400).json({ message: 'Senha deve conter no mínimo 8 caractéres!'});
+                    return;
                 };
 
                 const hashPassword = await bcrypt.hash(password, 10);
@@ -156,29 +181,30 @@ export class UserController{
 
             await user.save();
 
-            return res.status(200).json({ message: 'Perfil atualizado com sucesso!' });
+            res.status(200).json({ message: 'Perfil atualizado com sucesso!' });
         }
         catch(err){
             console.error('Falha ao atualizar dados!', err);
-            return res.status(401).json({ message: 'Falha ao atualizar dados!' });
+            res.status(401).json({ message: 'Falha ao atualizar dados!' });
         };
     };
 
-    deleteAccout = async (req: Request, res: Response): Promise<Response> => {
+    deleteAccout = async (req: Request, res: Response): Promise<void> => {
         const userId = (req as any).user.userId;
 
         try{
             const user = await User.destroy({ where: {id: userId} });
 
             if(user === 0){
-                return res.status(404).json({ message: 'Usuário não encontrado!' });
+                res.status(404).json({ message: 'Usuário não encontrado!' });
+                return;
             }
             
-            return res.status(204).send();
+            res.status(204).send();
         }
         catch(err){
             console.error('Falha ao deletar perfil!', err);
-            return res.status(500).json({ message: 'Falha ao deletar perfil!' });
+            res.status(500).json({ message: 'Falha ao deletar perfil!' });
         };
     };
 };

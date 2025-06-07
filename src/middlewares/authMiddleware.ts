@@ -4,11 +4,12 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
+const authMiddleware = (req: Request, res: Response, next: NextFunction): void => {
     const authHeader= req.headers.authorization;
 
     if(!authHeader || !authHeader.startsWith('Bearer ')){
-        return res.status(401).json({ message: 'Token não fornecido!' })
+        res.status(401).json({ message: 'Token não fornecido!' });
+        return;
     };
     const token = authHeader.split(' ')[1];
 
@@ -19,7 +20,7 @@ const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
     }
     catch(err){
         console.error('Autenticação falhou!', err);
-        return res.status(500).json({ message: 'Falha ao realizar autenticação!' })
+        res.status(500).json({ message: 'Falha ao realizar autenticação!' })
     };
 };
 

@@ -5,90 +5,108 @@ const { Categories } = models;
 
 export class CategoryController{
 
-    create = async (req: Request, res: Response): Promise<Response> => {
-        const { name, description } = req.body;
+    create = async (req: Request, res: Response): Promise<void> => {
+        const { category, description } = req.body;
 
         try{
-            const existingCategory = await Categories.findOne({ where: {name} });
-            if(existingCategory){ return res.status(400).json({ message: 'Categoria já registrada!' }); };
+            const existingCategory = await Categories.findOne({ where: {category} });
+            if(existingCategory){ 
+                res.status(400).json({ message: 'Categoria já registrada!' });
+                return; 
+            };
 
-            const category = await Categories.create({ name, description });
-            return res.status(201).json({ message: 'Categoria criada com sucesso!',
-                category: {id: category.id, nome: category.name, descricao: category.description }
+            const categories = await Categories.create({ category, description });
+            res.status(201).json({ message: 'Categoria criada com sucesso!',
+                category: {id: categories.id, categoria: categories.category, descricao: categories.description }
              });
         }
         catch(err){
             console.error('Falha ao criar categoria!', err);
-            return res.status(500).json({ message: 'Falha ao criar categoria!', });
+            res.status(500).json({ message: 'Falha ao criar categoria!', });
         };
     };
 
-    getAll = async (req: Request, res: Response): Promise<Response> => {
+    getAll = async (req: Request, res: Response): Promise<void> => {
 
         try{
-            const category = await Categories.findAll();
-            if(category.length === 0){ return res.status(404).json({ message: 'Nenhuma categoria encontrada!' }); };
-
-            return res.status(200).json({ message: 'Categorias carregadas com sucesso!', category });
+            const categories = await Categories.findAll();
+            if(categories.length === 0){ 
+                res.status(404).json({ message: 'Nenhuma categoria encontrada!' }); 
+                return;
+            };
+            
+            res.status(200).json({ message: 'Categorias carregadas com sucesso!', categories });
         }
         catch(err){
             console.error('Falha ao buscar categorias!', err);
-            return res.status(500).json({ message: 'Falha ao buscar categorias!' });
+            
+            res.status(500).json({ message: 'Falha ao buscar categorias!' });
         }
     };
 
-    getById = async (req: Request, res: Response): Promise<Response> => {
+    getById = async (req: Request, res: Response): Promise<void> => {
         const categoryId = req.params.id;
 
         try{
-            const category = await Categories.findByPk(categoryId);
-            if(!category){ return res.status(404).json({ message: 'Categoria não encontrada!' }); };
-
-            return res.status(200).json({ message: 'Categorias retornadas com sucesso!', category });
+            const categories = await Categories.findByPk(categoryId);
+            if(!categories){ 
+                res.status(404).json({ message: 'Categoria não encontrada!' }); 
+                return;
+            };
+            
+            res.status(200).json({ message: 'Categorias retornadas com sucesso!', categories });
         }
         catch(err){
             console.error('Falha ao buscar categoria!', err);
-            return res.status(500).json({ message: 'Falha ao retornar categorias!' });
+            
+            res.status(500).json({ message: 'Falha ao retornar categorias!' });
         };
     };
 
-    updateCategory = async (req: Request, res: Response): Promise<Response> => {
+    updateCategory = async (req: Request, res: Response): Promise<void> => {
         const categoryId = req.params.id;
-        const { name, description } = req.body;
+        const { category, description } = req.body;
 
-        if(!name && !description){
-            return res.status(400).json({ message: 'Ao menos um campo deve ser informado!' });
+        if(!category && !description){
+            res.status(400).json({ message: 'Ao menos um campo deve ser informado!' });
+            return;
         }
 
         try{
-            const category = await Categories.findByPk(categoryId);
-            if(!category){ return res.status(404).json({ message: 'Categoria não encontrada!' }); };
+            const categories = await Categories.findByPk(categoryId);
+            if(!categories){ 
+                res.status(404).json({ message: 'Categoria não encontrada!' }); 
+                return;
+            };
 
-            if(name){ category.name = name; };
-            if(description){ category.description = description; };
+            if(categories){ categories.category = category; };
+            if(description){ categories.description = description; };
 
-            await category.save();
-            return res.status(200).json({ message: 'Categoria atualizada com sucesso!' });
+            await categories.save();
+            res.status(200).json({ message: 'Categoria atualizada com sucesso!' });
         }
         catch(err){
             console.error('Falha ao atualizar categoria!', err);
-            return res.status(500).json({ message: 'Falha ao atualizar categoria!' });
+            res.status(500).json({ message: 'Falha ao atualizar categoria!' });
         };
     };
 
-    deleteCategory = async (req: Request, res: Response): Promise<Response> => {
+    deleteCategory = async (req: Request, res: Response): Promise<void> => {
         const categoryId = req.params.id;
 
         try{
-            const category = await Categories.destroy({ where: {id: categoryId} });
+            const categories = await Categories.destroy({ where: {id: categoryId} });
 
-            if(category === 0){ return res.status(404).json({ message: 'Categoria não encontrada!' }); };
+            if(categories === 0){ 
+                res.status(404).json({ message: 'Categoria não encontrada!' }); 
+                return;
+            };
 
-            return res.status(204).send();
+            res.status(204).send();
         }
         catch(err){
             console.error('Falha ao deletar categoria!', err);
-            return res.status(500).json({ message: 'Falha ao deletar categoria!' });
+            res.status(500).json({ message: 'Falha ao deletar categoria!' });
         };
     };
 };

@@ -4,7 +4,7 @@ import { Products } from './Products';
 
 export class Categories extends Model{
     declare id: number;
-    declare name: string;
+    declare category: string;
     declare description: string;
 
     public static associations: {
@@ -26,7 +26,7 @@ Categories.init(
             primaryKey: true,
             autoIncrement: true
         },
-        name: {
+        category: {
             type: DataTypes.STRING,
             allowNull: false,
             unique: true 

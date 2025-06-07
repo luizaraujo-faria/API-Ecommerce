@@ -52,7 +52,7 @@ CartItems.init(
         total: {
             type: DataTypes.DECIMAL(8,2),
             allowNull: false
-        }
+        },
     },
     {
         sequelize,
